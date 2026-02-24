@@ -3,33 +3,49 @@ pipeline {
 
     environment {
         IMAGE_NAME = "node-app"
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        CONTAINER_NAME = "node-container"
+        PORT = "3000"
     }
 
     stages {
 
-        stage('Clone Code') {
+        stage('Clone Repo') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/21mohitsen/devops-node-project.git'
+                url: 'https://github.com/21mohitsen/devops-node-project.git'
+            }
+        }
+
+        stage('Stop & Remove Old Container') {
+            steps {
+                sh '''
+                docker stop $CONTAINER_NAME || true
+                docker rm $CONTAINER_NAME || true
+                '''
+            }
+        }
+
+        stage('Remove Old Image') {
+            steps {
+                sh '''
+                docker rmi $IMAGE_NAME:latest || true
+                '''
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+                sh '''
+                docker build -t $IMAGE_NAME:latest .
+                '''
             }
         }
 
-        stage('Stop Old Container') {
+        stage('Run New Container') {
             steps {
-                sh 'docker rm -f node-container || true'
-            }
-        }
-
-        stage('Run Container') {
-            steps {
-                sh 'docker run -d -p 3000:3000 --name node-container $IMAGE_NAME:$IMAGE_TAG'
+                sh '''
+                docker run -d -p $PORT:$PORT --name $CONTAINER_NAME $IMAGE_NAME:latest
+                '''
             }
         }
     }
